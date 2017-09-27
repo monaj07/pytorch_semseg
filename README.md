@@ -80,6 +80,9 @@ python train.py [-h] [--arch [ARCH]] [--dataset [DATASET]]
   --feature_scale  Divider for # of features to use
 ```
 
+Brief command:
+`python train.py --arch fcn32s --dataset pascal`
+
 **To validate the model :**
 
 ```
@@ -94,6 +97,10 @@ python validate.py [-h] [--model_path [MODEL_PATH]] [--dataset [DATASET]]
   --batch_size   Batch Size
   --split        Split of dataset to validate on
 ```
+
+Brief command:
+(choose the proper trained model)
+`python validate.py --model_path fcn32s_pascal_1_0.pkl --dataset pascal --split val`
 
 **To test the model w.r.t. a dataset on custom images(s):**
 
