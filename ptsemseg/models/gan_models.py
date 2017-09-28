@@ -4,7 +4,6 @@ import torch.nn.init as init
 import os
 
 ngf = 64
-nz = 100
 
 def weights_init(m):
     classname = m.__class__.__name__
@@ -15,7 +14,7 @@ def weights_init(m):
         m.bias.data.fill_(0)
 
 class _netG(nn.Module):
-    def __init__(self):
+    def __init__(self, nz=100):
         super(_netG, self).__init__()
         self.main = nn.Sequential(
             # input is Z, going into a convolution

@@ -2,6 +2,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+class padder_layer(nn.Module):
+    def __init__(self, pad_size):
+        super(padder_layer, self).__init__()
+        self.apply_padding = nn.ConstantPad2d(pad_size, 0)  # Pad with zero values
+
+    def forward(self, x):
+        output = self.apply_padding(x)
+        return output
 
 class conv2DBatchNorm(nn.Module):
     def __init__(self, in_channels, n_filters, k_size,  stride, padding, bias=True):
