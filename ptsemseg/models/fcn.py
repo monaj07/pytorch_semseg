@@ -1,5 +1,14 @@
 import torch.nn as nn
+import torch.nn.init as init
 import torch.nn.functional as F
+
+def weights_init(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        init.xavier_normal(m.weight)
+    elif classname.find('BatchNorm') != -1:
+        m.weight.data.normal_(1.0, 0.02)
+        m.bias.data.fill_(0)
 
 # Alexnet feature maps
 class alexnet_features(nn.Module):
@@ -43,6 +52,12 @@ class alexnet_features(nn.Module):
         conv = self.features(x)
         pre_score = self.classifier(conv)
         return pre_score
+
+    def initialize(self, init_file=None):
+        if (init_file):
+            self.load_state_dict(init_file)
+        else:
+            self.apply(weights_init)
 
     def init_alex_params(self, alexnet, copy_fc8=True):
 
@@ -94,6 +109,12 @@ class alexnet_segmenter(nn.Module):
             l2 = self.classifier[0]
             l2.weight.data = l1.weight.data[:n_class, :].view(l2.weight.size())
             l2.bias.data = l1.bias.data[:n_class]
+
+    def initialize(self, init_file=None):
+        if (init_file):
+            self.load_state_dict(init_file)
+        else:
+            self.apply(weights_init)
 
 
 # Alexnet
