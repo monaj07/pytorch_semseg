@@ -21,6 +21,14 @@ def get_model(name, n_classes):
         alexnet = models.alexnet(pretrained=True)
         model.init_alex_params(alexnet)
 
+    elif name == 'alexfcn_v2':
+        model_features = model(n_classes=n_classes)
+        alexnet = models.alexnet(pretrained=True)
+        model_features.init_alex_params(alexnet)
+        model_segmenter = alexnet_segmenter(orig_size=(256,256), n_classes=n_classes)
+        model_segmenter.init_alex_params(alexnet)
+        model = (model_features, model_segmenter)
+
     elif name == 'segnet':
         model = model(n_classes=n_classes,
                       is_unpooling=True)
@@ -39,6 +47,7 @@ def get_model(name, n_classes):
 
 def _get_model_instance(name):
     return {
+        'alexfcn_v2': alexnet_features,
         'alexfcn': alexfcn,
         'fcn32s': fcn32s,
         'fcn8s': fcn8s,

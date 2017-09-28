@@ -1,6 +1,101 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
+# Alexnet feature maps
+class alexnet_features(nn.Module):
+    def __init__(self, n_classes=21, learned_billinear=False):
+        super(alexnet_features, self).__init__()
+        self.learned_billinear = learned_billinear
+        self.n_classes = n_classes
+
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=0),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+
+            nn.Conv2d(64, 192, kernel_size=5, stride=1, padding=2),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+
+            nn.Conv2d(192, 384, kernel_size=3, stride=1),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(384, 256, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True),
+        )
+        self.classifier = nn.Sequential(
+            nn.Dropout2d(),
+            nn.Conv2d(256, 4096, kernel_size=6, stride=1),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(),
+            nn.Conv2d(4096, 4096, kernel_size=1, stride=1),
+            nn.ReLU(inplace=True),
+        )
+
+        if self.learned_billinear:
+            raise NotImplementedError
+
+    def forward(self, x):
+        conv = self.features(x)
+        pre_score = self.classifier(conv)
+        return pre_score
+
+    def init_alex_params(self, alexnet, copy_fc8=True):
+
+        blocks = [self.features]
+        features = list(alexnet.features.children())
+
+        for idx, conv_block in enumerate(blocks):
+            for l1, l2 in zip(features, conv_block):
+                if isinstance(l1, nn.Conv2d) and isinstance(l2, nn.Conv2d):
+                    #print idx, l1, l2
+                    assert l1.weight.size() == l2.weight.size()
+                    assert l1.bias.size() == l2.bias.size()
+                    l2.weight.data = l1.weight.data
+                    l2.bias.data = l1.bias.data
+        for i1, i2 in zip([1, 4], [1, 4]):
+            l1 = alexnet.classifier[i1]
+            l2 = self.classifier[i2]
+            #print type(l1), dir(l1),
+            l2.weight.data = l1.weight.data.view(l2.weight.size())
+            l2.bias.data = l1.bias.data.view(l2.bias.size())
+
+# Alexnet segmenter
+class alexnet_segmenter(nn.Module):
+    def __init__(self, orig_size, n_classes=21, learned_billinear=False):
+        super(alexnet_segmenter, self).__init__()
+        self.learned_billinear = learned_billinear
+        self.n_classes = n_classes
+        assert (orig_size is not None)
+        self.orig_size = orig_size
+
+        self.classifier = nn.Sequential(
+            nn.Conv2d(4096, self.n_classes, kernel_size=1),
+        )
+
+        if self.learned_billinear:
+            raise NotImplementedError
+
+    def forward(self, x):
+        score = self.classifier(x)
+        if isinstance(self.orig_size, int):
+            self.orig_size = (self.orig_size, self.orig_size)
+        out = F.upsample_bilinear(score, self.orig_size)
+        return out
+
+    def init_alex_params(self, alexnet, copy_fc8=True):
+        n_class = self.classifier[0].weight.size()[0]
+        if copy_fc8:
+            l1 = alexnet.classifier[6]
+            l2 = self.classifier[0]
+            l2.weight.data = l1.weight.data[:n_class, :].view(l2.weight.size())
+            l2.bias.data = l1.bias.data[:n_class]
+
+
 # Alexnet
 class alexfcn(nn.Module):
     def __init__(self, n_classes=21, learned_billinear=False):
