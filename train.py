@@ -25,15 +25,6 @@ def train(args):
     n_classes = loader.n_classes
     trainloader = data.DataLoader(loader, batch_size=args.batch_size, num_workers=4, shuffle=True)
 
-    # Setup visdom for visualization
-    vis = visdom.Visdom()
-
-    loss_window = vis.line(X=torch.zeros((1,)).cpu(),
-                           Y=torch.zeros((1)).cpu(),
-                           opts=dict(xlabel='minibatches',
-                                     ylabel='Loss',
-                                     title='Training Loss',
-                                     legend=['Loss']))
 
     # Setup Model
     model = get_model(args.arch, n_classes)
@@ -57,8 +48,8 @@ def train(args):
                 images = Variable(images)
                 labels = Variable(labels)
 
-            iter = len(trainloader)*epoch + i
-            poly_lr_scheduler(optimizer, args.l_rate, iter)
+            #iter = len(trainloader)*epoch + i
+            #poly_lr_scheduler(optimizer, args.l_rate, iter)
             
             optimizer.zero_grad()
             outputs = model(images)
@@ -68,14 +59,9 @@ def train(args):
             loss.backward()
             optimizer.step()
 
-            vis.line(
-                X=torch.ones((1, 1)).cpu() * i,
-                Y=torch.Tensor([loss.data[0]]).unsqueeze(0).cpu(),
-                win=loss_window,
-                update='append')
 
             if (i+1) % 20 == 0:
-                print("Epoch [%d/%d] Loss: %.4f" % (epoch+1, args.n_epoch, loss.data[0]))
+                print("Iter [%d/%d], Epoch [%d/%d] Loss: %.4f" % (i+1, len(trainloader), epoch+1, args.n_epoch, loss.data[0]))
 
         # test_output = model(test_image)
         # predicted = loader.decode_segmap(test_output[0].cpu().data.numpy().argmax(0))

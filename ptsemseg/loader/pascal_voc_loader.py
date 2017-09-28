@@ -17,7 +17,7 @@ def get_data_path(name):
     return data[name]['data_path']
 
 class pascalVOCLoader(data.Dataset):
-    def __init__(self, root, split="train_aug", is_transform=False, img_size=512):
+    def __init__(self, root, split="train", is_transform=False, img_size=224):
         self.root = root
         self.split = split
         self.is_transform = is_transform
@@ -26,23 +26,24 @@ class pascalVOCLoader(data.Dataset):
         self.mean = np.array([104.00699, 116.66877, 122.67892])
         self.files = collections.defaultdict(list)
 
-        for split in ["train", "val", "trainval"]:
-            file_list = tuple(open(root + '/ImageSets/Segmentation/' + split + '.txt', 'r'))
-            file_list = [id_.rstrip() for id_ in file_list]
-            self.files[split] = file_list
+	file_list = []
 
-        if not os.path.isdir(self.root + '/SegmentationClass/pre_encoded'):
-            self.setup(pre_encode=True)
-        else:
-            self.setup(pre_encode=False)
+	with open(root + '/dataset/' + split + '.txt', 'r') as f:
+	    lines = f.readlines()
+	filenames = [l.strip() for l in lines]
+	N = len(filenames)
+	print('Loading image and label filenames...\n')
+	for i in range(N):
+	    file_list.append(filenames[i].split()[0][12:-4])	
+	self.files = file_list
 
     def __len__(self):
-        return len(self.files[self.split])
+        return len(self.files)
 
     def __getitem__(self, index):
-        img_name = self.files[self.split][index]
+        img_name = self.files[index]
         img_path = self.root + '/JPEGImages/' + img_name + '.jpg'
-        lbl_path = self.root + '/SegmentationClass/pre_encoded/' + img_name + '.png'
+        lbl_path = self.root + '/SegmentationClassAug/' + img_name + '.png'
 
         img = m.imread(img_path)
         img = np.array(img, dtype=np.uint8)
@@ -67,7 +68,7 @@ class pascalVOCLoader(data.Dataset):
         # NHWC -> NCWH
         img = img.transpose(2, 0, 1)
 
-        lbl[lbl==255] = 0
+        lbl[lbl==255] = -1
         lbl = lbl.astype(float)
         lbl = m.imresize(lbl, (self.img_size[0], self.img_size[1]), 'nearest', mode='F')
         lbl = lbl.astype(int)

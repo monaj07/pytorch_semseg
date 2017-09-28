@@ -1,6 +1,5 @@
 import sys
 import torch
-import visdom
 import argparse
 import numpy as np
 import torch.nn as nn
@@ -13,6 +12,8 @@ from tqdm import tqdm
 
 from ptsemseg.loader import get_loader, get_data_path
 from ptsemseg.metrics import scores
+
+import pdb
 
 def validate(args):
 
@@ -42,7 +43,7 @@ def validate(args):
         outputs = model(images)
         pred = np.squeeze(outputs.data.max(1)[1].cpu().numpy(), axis=1)
         gt = labels.data.cpu().numpy()
-        
+
         for gt_, pred_ in zip(gt, pred):
             gts.append(gt_)
             preds.append(pred_)
