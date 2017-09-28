@@ -19,7 +19,7 @@ build/
 develop-eggs/
 dist/
 downloads/
-models/
+#models/
 eggs/
 .eggs/
 lib/
