@@ -29,6 +29,11 @@ def train(args):
     # Setup Model
     model = get_model(args.arch, n_classes)
 
+    if args.restore_from != '':
+        print('\n' + '-' * 40)
+        print('Restored the trained network...............\n')
+        model = torch.load(args.restore_from)
+
     if torch.cuda.is_available():
         model.cuda(0)
         test_image, test_segmap = loader[0]
@@ -70,8 +75,10 @@ def train(args):
         # vis.image(test_image[0].cpu().data.numpy(), opts=dict(title='Input' + str(epoch)))
         # vis.image(np.transpose(target, [2,0,1]), opts=dict(title='GT' + str(epoch)))
         # vis.image(np.transpose(predicted, [2,0,1]), opts=dict(title='Predicted' + str(epoch)))
-
-        torch.save(model, "{}_{}_{}_{}.pkl".format(args.arch, args.dataset, args.feature_scale, epoch))
+        if args.restore_from != '':
+            torch.save(model, "{}_{}_restore_from_42_{}_{}.pkl".format(args.arch, args.dataset, args.feature_scale, epoch))
+        else:
+            torch.save(model, "{}_{}_{}_{}.pkl".format(args.arch, args.dataset, args.feature_scale, epoch))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Hyperparams')
@@ -90,6 +97,8 @@ if __name__ == '__main__':
     parser.add_argument('--l_rate', nargs='?', type=float, default=1e-5, 
                         help='Learning Rate')
     parser.add_argument('--feature_scale', nargs='?', type=int, default=1, 
-                        help='Divider for # of features to use')    
+                        help='Divider for # of features to use')
+    parser.add_argument('--restore_from', nargs='?', type=str, default='',
+                        help='path to the saved weights to use')
     args = parser.parse_args()
     train(args)
