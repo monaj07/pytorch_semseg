@@ -99,7 +99,7 @@ class alexnet_segmenter(nn.Module):
         score = self.classifier(x)
         if isinstance(self.orig_size, int):
             self.orig_size = (self.orig_size, self.orig_size)
-        out = F.upsample_bilinear(score, self.orig_size)
+        out = F.upsample(score, self.orig_size, mode='bilinear')
         return out
 
     def init_alex_params(self, alexnet, copy_fc8=True):

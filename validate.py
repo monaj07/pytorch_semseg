@@ -41,7 +41,7 @@ def validate(args):
             labels = Variable(labels)
 
         outputs = model(images)
-        pred = np.squeeze(outputs.data.max(1)[1].cpu().numpy(), axis=1)
+        pred = outputs.data.max(1)[1].cpu().numpy()
         gt = labels.data.cpu().numpy()
 
         for gt_, pred_ in zip(gt, pred):
