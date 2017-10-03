@@ -69,10 +69,12 @@ class pascalVOCLoader(data.Dataset):
         img = img.transpose(2, 0, 1)
 
         lbl[lbl==255] = -1
-        lbl = lbl.astype(float)
-        lbl = cv2.resize(lbl, self.img_size, interpolation=cv2.INTER_NEAREST)
-        #lbl = m.imresize(lbl, (self.img_size[0], self.img_size[1]), 'nearest', mode='F')
-        lbl = lbl.astype(int)
+
+        if self.split=='train':
+            lbl = lbl.astype(float)
+            lbl = cv2.resize(lbl, self.img_size, interpolation=cv2.INTER_NEAREST)
+            #lbl = m.imresize(lbl, (self.img_size[0], self.img_size[1]), 'nearest', mode='F')
+            lbl = lbl.astype(int)
 
         img = torch.from_numpy(img).float()
         lbl = torch.from_numpy(lbl).long()
@@ -195,10 +197,12 @@ class pascalVOC11Loader(data.Dataset):
         img = img.transpose(2, 0, 1)
 
         lbl[lbl==255] = -1
-        lbl = lbl.astype(float)
-        lbl = cv2.resize(lbl, self.img_size, interpolation=cv2.INTER_NEAREST)
-        #lbl = m.imresize(lbl, (self.img_size[0], self.img_size[1]), 'nearest', mode='F')
-        lbl = lbl.astype(int)
+
+        if self.split=='train':
+            lbl = lbl.astype(float)
+            lbl = cv2.resize(lbl, self.img_size, interpolation=cv2.INTER_NEAREST)
+            #lbl = m.imresize(lbl, (self.img_size[0], self.img_size[1]), 'nearest', mode='F')
+            lbl = lbl.astype(int)
 
         img = torch.from_numpy(img).float()
         lbl = torch.from_numpy(lbl).long()

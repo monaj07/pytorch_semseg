@@ -5,6 +5,8 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
+import cv2
+import matplotlib.pyplot as plt
 
 from torch.autograd import Variable
 from torch.utils import data
@@ -42,6 +44,9 @@ def validate(args):
 
         outputs = model(images)
         pred = outputs.data.max(1)[1].cpu().numpy()
+        pred = np.squeeze(pred)
+        pred = cv2.resize(pred, labels.size()[1:][::-1], interpolation=cv2.INTER_NEAREST)
+        pred = np.expand_dims(pred, axis=0)
         gt = labels.data.cpu().numpy()
 
         for gt_, pred_ in zip(gt, pred):
@@ -62,9 +67,9 @@ if __name__ == '__main__':
                         help='Path to the saved model')
     parser.add_argument('--dataset', nargs='?', type=str, default='pascal', 
                         help='Dataset to use [\'pascal, camvid, ade20k etc\']')
-    parser.add_argument('--img_rows', nargs='?', type=int, default=256, 
+    parser.add_argument('--img_rows', nargs='?', type=int, default=320,
                         help='Height of the input image')
-    parser.add_argument('--img_cols', nargs='?', type=int, default=256, 
+    parser.add_argument('--img_cols', nargs='?', type=int, default=320,
                         help='Height of the input image')
     parser.add_argument('--batch_size', nargs='?', type=int, default=1, 
                         help='Batch Size')
