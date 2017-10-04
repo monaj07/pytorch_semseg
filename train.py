@@ -97,7 +97,7 @@ def train(args):
         # vis.image(np.transpose(target, [2,0,1]), opts=dict(title='GT' + str(epoch)))
         # vis.image(np.transpose(predicted, [2,0,1]), opts=dict(title='Predicted' + str(epoch)))
         if args.restore_from != '':
-            torch.save(model, "{}_{}_from_{}_{}.pkl".format(args.arch, args.dataset, args.restore_from, epoch))
+            torch.save(model, "{}_{}_{}_from_{}.pkl".format(args.arch, args.dataset, epoch, args.restore_from))
         else:
             torch.save(model, "{}_{}_{}.pkl".format(args.arch, args.dataset, epoch))
 

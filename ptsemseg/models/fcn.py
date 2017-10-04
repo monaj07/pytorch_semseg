@@ -12,10 +12,9 @@ def weights_init(m):
 
 # Alexnet feature maps
 class alexnet_features(nn.Module):
-    def __init__(self, n_classes=21, learned_billinear=False):
+    def __init__(self, learned_billinear=False):
         super(alexnet_features, self).__init__()
         self.learned_billinear = learned_billinear
-        self.n_classes = n_classes
 
         self.features = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=0),
@@ -53,13 +52,7 @@ class alexnet_features(nn.Module):
         pre_score = self.classifier(conv)
         return pre_score
 
-    def initialize(self, init_file=None):
-        if (init_file):
-            self.load_state_dict(init_file)
-        else:
-            self.apply(weights_init)
-
-    def init_alex_params(self, alexnet, copy_fc8=True):
+    def init_alex_params(self, alexnet):
 
         blocks = [self.features]
         features = list(alexnet.features.children())
@@ -81,12 +74,10 @@ class alexnet_features(nn.Module):
 
 # Alexnet segmenter
 class alexnet_segmenter(nn.Module):
-    def __init__(self, orig_size, n_classes=21, learned_billinear=False):
+    def __init__(self, n_classes=21, learned_billinear=False):
         super(alexnet_segmenter, self).__init__()
         self.learned_billinear = learned_billinear
         self.n_classes = n_classes
-        assert (orig_size is not None)
-        self.orig_size = orig_size
 
         self.classifier = nn.Sequential(
             nn.Conv2d(4096, self.n_classes, kernel_size=1),
@@ -97,10 +88,7 @@ class alexnet_segmenter(nn.Module):
 
     def forward(self, x):
         score = self.classifier(x)
-        if isinstance(self.orig_size, int):
-            self.orig_size = (self.orig_size, self.orig_size)
-        out = F.upsample(score, self.orig_size, mode='bilinear')
-        return out
+        return score
 
     def init_alex_params(self, alexnet, copy_fc8=True):
         n_class = self.classifier[0].weight.size()[0]
@@ -109,12 +97,6 @@ class alexnet_segmenter(nn.Module):
             l2 = self.classifier[0]
             l2.weight.data = l1.weight.data[:n_class, :].view(l2.weight.size())
             l2.bias.data = l1.bias.data[:n_class]
-
-    def initialize(self, init_file=None):
-        if (init_file):
-            self.load_state_dict(init_file)
-        else:
-            self.apply(weights_init)
 
 
 # Alexnet

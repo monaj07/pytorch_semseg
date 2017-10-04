@@ -5,6 +5,8 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
+import cv2
+import matplotlib.pyplot as plt
 
 from torch.autograd import Variable
 from torch.utils import data
@@ -24,6 +26,7 @@ class padder_layer(nn.Module):
         output = self.apply_padding(x)
         return output
 
+
 def validate(args):
 
     # Setup Dataloader
@@ -33,33 +36,40 @@ def validate(args):
     n_classes = loader.n_classes
     valloader = data.DataLoader(loader, batch_size=args.batch_size, num_workers=4)
 
-    G = args.gpu
-
-    # Setup Model
-    submodels = torch.load(args.model_path)
-    submodels[0].eval()
-    submodels[1].eval()
+    ############################################
+    # Load the trained Model
+    assert(args.netF_path != '' and args.netS_path != '')
+    print('\n' + '-' * 60)
+    netF = torch.load(args.netF_path)
+    netS = torch.load(args.netS_path)
+    print('Loading the trained networks and for evaluation.')
+    print('-' * 60)
+    ############################################
+    padder = padder_layer(pad_size=100)
 
     if torch.cuda.is_available():
-        submodels[0].cuda(G)
-        submodels[1].cuda(G)
-
-    padder = padder_layer(100)
+        netF.cuda(args.gpu)
+        netS.cuda(args.gpu)
+        padder.cuda(args.gpu)
 
     gts, preds = [], []
     for i, (images, labels) in tqdm(enumerate(valloader)):
         if torch.cuda.is_available():
-            images = Variable(images.cuda(G))
-            labels = Variable(labels.cuda(G))
+            images = Variable(images.cuda(args.gpu))
+            labels = Variable(labels.cuda(args.gpu))
         else:
             images = Variable(images)
             labels = Variable(labels)
 
         padded_images = padder(images)
-        features = submodels[0](padded_images)
-        outputs = submodels[1](features)
+        feature_maps = netF(padded_images)
+        score_maps = netS(feature_maps)
+        outputs = F.upsample(score_maps, labels.size()[1:], mode='bilinear')
 
-        pred = np.squeeze(outputs.data.max(1)[1].cpu().numpy(), axis=1)
+        pred = outputs.data.max(1)[1].cpu().numpy()
+        pred = np.squeeze(pred)
+        pred = cv2.resize(pred, labels.size()[1:][::-1], interpolation=cv2.INTER_NEAREST)
+        pred = np.expand_dims(pred, axis=0)
         gt = labels.data.cpu().numpy()
 
         for gt_, pred_ in zip(gt, pred):
@@ -76,19 +86,24 @@ def validate(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Hyperparams')
-    parser.add_argument('--model_path', nargs='?', type=str, default='fcn8s_pascal_1_26.pkl',
-                        help='Path to the saved model')
+    parser.add_argument('--netF_path', nargs='?', type=str, required=True,
+                        help='path to the netF model')
+    parser.add_argument('--netS_path', nargs='?', type=str, required=True,
+                        help='path to the netS model')
     parser.add_argument('--dataset', nargs='?', type=str, default='pascal',
                         help='Dataset to use [\'pascal, camvid, ade20k etc\']')
-    parser.add_argument('--img_rows', nargs='?', type=int, default=256,
+    parser.add_argument('--img_rows', nargs='?', type=int, default=320,
                         help='Height of the input image')
-    parser.add_argument('--img_cols', nargs='?', type=int, default=256,
+    parser.add_argument('--img_cols', nargs='?', type=int, default=320,
                         help='Height of the input image')
     parser.add_argument('--batch_size', nargs='?', type=int, default=1,
                         help='Batch Size')
     parser.add_argument('--split', nargs='?', type=str, default='val',
                         help='Split of dataset to test on')
-    parser.add_argument('--gpu', nargs='?', type=int, default=0,
-                        help='which gpu to use')
+    parser.add_argument('--gpu', type=int, default=0,
+                        help='which GPU to use')
+    parser.add_argument('--save_folder', nargs='?', type=str, default='saved',
+                        help='Where to retrieve the models')
     args = parser.parse_args()
     validate(args)
+
