@@ -6,6 +6,7 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
+import matplotlib.pyplot as plt
 
 from torch.autograd import Variable
 from torch.utils import data
@@ -17,18 +18,36 @@ from ptsemseg.metrics import scores
 from lr_scheduling import *
 import pdb
 
+
+def weights_init(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        m.weight.data.normal_(0.0, 0.02)
+    elif classname.find('BatchNorm') != -1:
+        m.weight.data.normal_(1.0, 0.02)
+        m.bias.data.fill_(0)
+
+
 def train(args):
 
     # Setup Dataloader
     data_loader = get_loader(args.dataset)
     data_path = get_data_path(args.dataset)
-    loader = data_loader(data_path, is_transform=True, img_size=(args.img_rows, args.img_cols))
+    loader = data_loader(data_path, split=args.split, is_transform=True, img_size=(args.img_rows, args.img_cols))
     n_classes = loader.n_classes
     trainloader = data.DataLoader(loader, batch_size=args.batch_size, num_workers=4, shuffle=True)
 
 
     # Setup Model
-    model = get_model(args.arch, n_classes)
+    pre_trained = True
+    model = get_model(args.arch, n_classes, pre_trained=pre_trained)
+
+    ############################################
+    # Random weights initialization
+    if not pre_trained:
+        model.apply(weights_init)
+    ############################################
+
 
     if args.restore_from != '':
         print('\n' + '-' * 40)
@@ -57,7 +76,7 @@ def train(args):
 
             #iter = len(trainloader)*epoch + i
             adjust_learning_rate(optimizer, args.l_rate, epoch)
-            
+
             optimizer.zero_grad()
             outputs = model(images)
 
@@ -102,5 +121,7 @@ if __name__ == '__main__':
                         help='path to the saved weights to use')
     parser.add_argument('--gpu', type=int, default=0,
                         help='which GPU to use')
+    parser.add_argument('--split', nargs='?', type=str, default='train',
+                        help='Split of dataset to test on')
     args = parser.parse_args()
     train(args)

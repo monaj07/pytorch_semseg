@@ -160,7 +160,7 @@ class alexfcn(nn.Module):
         conv = self.features(x)
         score = self.classifier(conv)
 
-        out = F.upsample_bilinear(score, x.size()[2:])
+        out = F.upsample(score, x.size()[2:], mode='bilinear')
 
         return out
 

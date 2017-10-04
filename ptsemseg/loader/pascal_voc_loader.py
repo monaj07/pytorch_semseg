@@ -117,33 +117,6 @@ class pascalVOCLoader(data.Dataset):
         else:
             return rgb
 
-    def setup(self, pre_encode=False):
-        sbd_path = get_data_path('sbd')
-        voc_path = get_data_path('pascal')
-
-        target_path = self.root + '/SegmentationClass/pre_encoded/'
-        if not os.path.exists(target_path):
-            os.makedirs(target_path)
-
-        sbd_train_list = tuple(open(sbd_path + 'dataset/train.txt', 'r'))
-        sbd_train_list = [id_.rstrip() for id_ in sbd_train_list]
-        
-        self.files['train_aug'] = self.files['train'] + sbd_train_list
-
-        if pre_encode:
-            print "Pre-encoding segmentation masks..."
-            for i in tqdm(sbd_train_list):
-                lbl_path = sbd_path + 'dataset/cls/' + i + '.mat'
-                lbl = io.loadmat(lbl_path)['GTcls'][0]['Segmentation'][0].astype(np.int32)
-                lbl = m.toimage(lbl, high=lbl.max(), low=lbl.min())
-                m.imsave(target_path + i + '.png', lbl)
-
-            for i in tqdm(self.files['trainval']):
-                lbl_path = self.root + '/SegmentationClass/' + i + '.png'
-                lbl = self.encode_segmap(m.imread(lbl_path))
-                lbl = m.toimage(lbl, high=lbl.max(), low=lbl.min())
-                m.imsave(target_path + i + '.png', lbl)
-
 
 class pascalVOC11Loader(data.Dataset):
     def __init__(self, root, split="train", is_transform=False, img_size=224):
@@ -157,7 +130,7 @@ class pascalVOC11Loader(data.Dataset):
 
 	file_list = []
 
-	with open(root + '/dataset_voc11/' + split + '.txt', 'r') as f:
+	with open(root + '/dataset/' + split + '.txt', 'r') as f:
 	    lines = f.readlines()
 	filenames = [l.rstrip() for l in lines]
 	N = len(filenames)
@@ -198,7 +171,7 @@ class pascalVOC11Loader(data.Dataset):
 
         lbl[lbl==255] = -1
 
-        if self.split=='train':
+        if 'train' in self.split:
             lbl = lbl.astype(float)
             lbl = cv2.resize(lbl, self.img_size, interpolation=cv2.INTER_NEAREST)
             #lbl = m.imresize(lbl, (self.img_size[0], self.img_size[1]), 'nearest', mode='F')

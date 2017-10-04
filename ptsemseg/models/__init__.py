@@ -8,18 +8,20 @@ from ptsemseg.models.linknet import *
 
 
 
-def get_model(name, n_classes):
+def get_model(name, n_classes, pre_trained=True):
     model = _get_model_instance(name)
 
     if name in ['fcn32s', 'fcn16s', 'fcn8s']:
         model = model(n_classes=n_classes)
-        vgg16 = models.vgg16(pretrained=True)
-        model.init_vgg16_params(vgg16)
+        if pre_trained:
+            vgg16 = models.vgg16(pretrained=True)
+            model.init_vgg16_params(vgg16)
 
     elif name == 'alexfcn':
         model = model(n_classes=n_classes)
-        alexnet = models.alexnet(pretrained=True)
-        model.init_alex_params(alexnet)
+        if pre_trained:
+            alexnet = models.alexnet(pretrained=True)
+            model.init_alex_params(alexnet)
 
     elif name == 'alexfcn_v2':
         model_features = model(n_classes=n_classes)
@@ -30,16 +32,13 @@ def get_model(name, n_classes):
         model = (model_features, model_segmenter)
 
     elif name == 'segnet':
-        model = model(n_classes=n_classes,
-                      is_unpooling=True)
-        vgg16 = models.vgg16(pretrained=True)
-        model.init_vgg16_params(vgg16)
+        model = model(n_classes=n_classes, is_unpooling=True)
+        if pre_trained:
+            vgg16 = models.vgg16(pretrained=True)
+            model.init_vgg16_params(vgg16)
 
     elif name == 'unet':
-        model = model(n_classes=n_classes,
-                      is_batchnorm=True,
-                      in_channels=3,
-                      is_deconv=True)
+        model = model(n_classes=n_classes, is_batchnorm=True, in_channels=3, is_deconv=True)
     else:
         raise 'Model {} not available'.format(name)
 
