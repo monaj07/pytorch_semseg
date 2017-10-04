@@ -17,6 +17,8 @@ from ptsemseg.metrics import scores
 
 import pdb
 
+############################################
+# Padding layer to be applied to the input data
 class padder_layer(nn.Module):
     def __init__(self, pad_size):
         super(padder_layer, self).__init__()
@@ -25,10 +27,10 @@ class padder_layer(nn.Module):
     def forward(self, x):
         output = self.apply_padding(x)
         return output
-
+############################################
 
 def validate(args):
-
+    ############################################
     # Setup Dataloader
     data_loader = get_loader(args.dataset)
     data_path = get_data_path(args.dataset)
@@ -44,16 +46,26 @@ def validate(args):
     netS = torch.load(args.netS_path)
     print('Loading the trained networks and for evaluation.')
     print('-' * 60)
+
     ############################################
     padder = padder_layer(pad_size=100)
+    netF.eval() # Eval() function should be applied to the model at the evaluation phase
+    netS.eval()
+    padder.eval()
 
+    ############################################
+    # Porting the networks to CUDA
     if torch.cuda.is_available():
         netF.cuda(args.gpu)
         netS.cuda(args.gpu)
         padder.cuda(args.gpu)
 
+    ############################################
+    # Evaluation:
     gts, preds = [], []
     for i, (images, labels) in tqdm(enumerate(valloader)):
+        ######################
+        # Porting the data to Autograd variables and CUDA (if available)
         if torch.cuda.is_available():
             images = Variable(images.cuda(args.gpu))
             labels = Variable(labels.cuda(args.gpu))
@@ -61,11 +73,15 @@ def validate(args):
             images = Variable(images)
             labels = Variable(labels)
 
+        ######################
+        # Passing the data through the networks
         padded_images = padder(images)
         feature_maps = netF(padded_images)
         score_maps = netS(feature_maps)
         outputs = F.upsample(score_maps, labels.size()[1:], mode='bilinear')
 
+        ######################
+        # Computing the score maps, and resizing them to match the ground-truth label maps
         pred = outputs.data.max(1)[1].cpu().numpy()
         pred = np.squeeze(pred)
         pred = cv2.resize(pred, labels.size()[1:][::-1], interpolation=cv2.INTER_NEAREST)
@@ -76,6 +92,8 @@ def validate(args):
             gts.append(gt_)
             preds.append(pred_)
 
+    ######################
+    # Computing the mean-IoU and other scores
     score, class_iou = scores(gts, preds, n_class=n_classes)
 
     for k, v in score.items():

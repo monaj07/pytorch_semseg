@@ -52,16 +52,11 @@ def train(args):
     if args.restore_from != '':
         print('\n' + '-' * 40)
         model = torch.load(args.restore_from)
-        print('Restored the trained network {} '.format(args.restore_from))
+        print('Restored the trained network.')
         print('-' * 40)
 
     if torch.cuda.is_available():
         model.cuda(args.gpu)
-        test_image, test_segmap = loader[0]
-        test_image = Variable(test_image.unsqueeze(0).cuda(args.gpu))
-    else:
-        test_image, test_segmap = loader[0]
-        test_image = Variable(test_image.unsqueeze(0))
 
     optimizer = torch.optim.SGD(model.parameters(), lr=args.l_rate, momentum=0.99, weight_decay=5e-4)
 
@@ -97,13 +92,13 @@ def train(args):
         # vis.image(np.transpose(target, [2,0,1]), opts=dict(title='GT' + str(epoch)))
         # vis.image(np.transpose(predicted, [2,0,1]), opts=dict(title='Predicted' + str(epoch)))
         if args.restore_from != '':
-            torch.save(model, "{}_{}_{}_from_{}.pkl".format(args.arch, args.dataset, epoch, args.restore_from))
+            torch.save(model, "./{}/{}_{}_{}_from_{}.pkl".format(args.save_folder, args.arch, args.dataset, epoch, args.restore_from))
         else:
-            torch.save(model, "{}_{}_{}.pkl".format(args.arch, args.dataset, epoch))
+            torch.save(model, "./{}/{}_{}_{}.pkl".format(args.save_folder, args.arch, args.dataset, epoch))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Hyperparams')
-    parser.add_argument('--arch', nargs='?', type=str, default='fcn8s', 
+    parser.add_argument('--arch', nargs='?', type=str, required=True,
                         help='Architecture to use [\'fcn8s, unet, segnet etc\']')
     parser.add_argument('--dataset', nargs='?', type=str, default='pascal', 
                         help='Dataset to use [\'pascal, camvid, ade20k etc\']')
@@ -123,5 +118,7 @@ if __name__ == '__main__':
                         help='which GPU to use')
     parser.add_argument('--split', nargs='?', type=str, default='train',
                         help='Split of dataset to test on')
+    parser.add_argument('--save_folder', nargs='?', type=str, default='saved',
+                        help='Where to save and retrieve the models')
     args = parser.parse_args()
     train(args)

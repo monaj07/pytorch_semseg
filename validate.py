@@ -31,13 +31,13 @@ def validate(args):
     model.eval()
 
     if torch.cuda.is_available():
-        model.cuda(0)
+        model.cuda(args.gpu)
 
     gts, preds = [], []
     for i, (images, labels) in tqdm(enumerate(valloader)):
         if torch.cuda.is_available():
-            images = Variable(images.cuda(0))
-            labels = Variable(labels.cuda(0))
+            images = Variable(images.cuda(args.gpu))
+            labels = Variable(labels.cuda(args.gpu))
         else:
             images = Variable(images)
             labels = Variable(labels)
@@ -63,7 +63,7 @@ def validate(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Hyperparams')
-    parser.add_argument('--model_path', nargs='?', type=str, default='fcn8s_pascal_1_26.pkl', 
+    parser.add_argument('--model_path', nargs='?', type=str, required=True,
                         help='Path to the saved model')
     parser.add_argument('--dataset', nargs='?', type=str, default='pascal', 
                         help='Dataset to use [\'pascal, camvid, ade20k etc\']')
@@ -73,6 +73,8 @@ if __name__ == '__main__':
                         help='Height of the input image')
     parser.add_argument('--batch_size', nargs='?', type=int, default=1, 
                         help='Batch Size')
+    parser.add_argument('--gpu', type=int, default=0,
+                        help='which GPU to use')
     parser.add_argument('--split', nargs='?', type=str, default='val', 
                         help='Split of dataset to test on')
     args = parser.parse_args()

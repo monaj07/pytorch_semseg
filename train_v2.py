@@ -19,7 +19,8 @@ from ptsemseg.metrics import scores
 from lr_scheduling import *
 import pdb
 
-
+############################################
+# Padding layer to be applied to the input data
 class padder_layer(nn.Module):
     def __init__(self, pad_size):
         super(padder_layer, self).__init__()
@@ -28,8 +29,11 @@ class padder_layer(nn.Module):
     def forward(self, x):
         output = self.apply_padding(x)
         return output
+############################################
 
-
+############################################
+# Parameter initialization for the network layers
+# It should be applied to the network using `apply` function
 def weights_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
@@ -37,16 +41,18 @@ def weights_init(m):
     elif classname.find('BatchNorm') != -1:
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
+############################################
 
 
 def train(args):
-
+    ############################################
     # Setup Dataloader
     data_loader = get_loader(args.dataset)
     data_path = get_data_path(args.dataset)
     loader = data_loader(data_path, split=args.split, is_transform=True, img_size=(args.img_rows, args.img_cols))
     n_classes = loader.n_classes
     trainloader = data.DataLoader(loader, batch_size=args.batch_size, num_workers=4, shuffle=True)
+    ############################################
 
     ############################################
     # Setup Model
@@ -54,31 +60,46 @@ def train(args):
     netF, netS = get_model(args.arch, n_classes, pre_trained=pre_trained)
     padder = padder_layer(pad_size=100)
     ############################################
+
+    ############################################
     # Random weight initialization
     if not pre_trained:
         netF.apply(weights_init)
         netS.apply(weights_init)
     ############################################
 
+    ############################################
+    # If resuming the training from a saved model
     if args.netF_path != '':
         print('\n' + '-' * 40)
-        netF = torch.load("./{}/{}".format(args.save_folder, args.netF_path))
+        netF = torch.load(args.netF_path)
         print('Restored the trained network {}'.format(args.netF_path))
     if args.netS_path != '':
-        netS = torch.load("./{}/{}".format(args.save_folder, args.netS_path))
+        netS = torch.load(args.netS_path)
         print('Restored the trained network {}'.format(args.netS_path))
         print('-' * 40)
+    ############################################
 
 
+    ############################################
+    # Porting the networks to CUDA
     if torch.cuda.is_available():
         netF.cuda(args.gpu)
         netS.cuda(args.gpu)
         padder.cuda(args.gpu)
+    ############################################
 
+    ############################################
+    # Defining the optimizer over the network parameters
     optimizerSS = torch.optim.SGD(list(netF.parameters())+list(netS.parameters()), lr=args.l_rate, momentum=0.99, weight_decay=5e-4)
+    ############################################
 
+    ############################################
+    # TRAINING:
     for epoch in range(args.n_epoch):
         for i, (images, labels) in enumerate(trainloader):
+            ######################
+            # Porting the data to Autograd variables and CUDA (if available)
             if torch.cuda.is_available():
                 images = Variable(images.cuda(args.gpu))
                 labels = Variable(labels.cuda(args.gpu))
@@ -86,23 +107,32 @@ def train(args):
                 images = Variable(images)
                 labels = Variable(labels)
 
+            ######################
+            # Scheduling the learning rate
             #iter = len(trainloader)*epoch + i
             adjust_learning_rate(optimizerSS, args.l_rate, epoch)
 
+            ######################
+            # Setting the gradients to zero at each iteration
             optimizerSS.zero_grad()
             netF.zero_grad()
             netS.zero_grad()
 
+            ######################
+            # Passing the data through the networks
             padded_images = padder(images)
             feature_maps = netF(padded_images)
             score_maps = netS(feature_maps)
             outputs = F.upsample(score_maps, labels.size()[1:], mode='bilinear')
 
+            ######################
+            # Computing the loss and doing back-propagation
             loss = cross_entropy2d(outputs, labels)
-
             loss.backward()
-            optimizerSS.step()
 
+            ######################
+            # Updating the parameters
+            optimizerSS.step()
 
             if (i+1) % 20 == 0:
                 print("Iter [%d/%d], Epoch [%d/%d] Loss: %.4f" % (i+1, len(trainloader), epoch+1, args.n_epoch, loss.data[0]))
