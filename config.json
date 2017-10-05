@@ -1,4 +1,8 @@
 {
+  "videos":
+  {
+    "data_path": "/home/monaj/bin/videos/"
+  },
   "pascal":
   {
     "data_path": "/home/monaj/bin/VOCdevkit/VOC2012/"
