@@ -18,6 +18,7 @@ from ptsemseg.loss import cross_entropy2d
 from ptsemseg.metrics import scores
 from lr_scheduling import *
 import pdb
+import copy
 
 ############################################
 # Padding layer to be applied to the input data
@@ -91,7 +92,11 @@ def train(args):
 
     ############################################
     # Defining the optimizer over the network parameters
-    optimizerSS = torch.optim.SGD(list(netF.parameters())+list(netS.parameters()), lr=args.l_rate, momentum=0.99, weight_decay=5e-4)
+    optimizerSS = torch.optim.SGD([{'params': netF.features.parameters()},
+                                        {'params': netF.classifier.parameters(), 'lr':10*args.l_rate},
+                                        {'params': netS.parameters(), 'lr':20*args.l_rate}],
+                                  lr=args.l_rate, momentum=0.99, weight_decay=5e-4)
+    optimizerSS_init = copy.deepcopy(optimizerSS)
     ############################################
 
     ############################################
@@ -109,8 +114,8 @@ def train(args):
 
             ######################
             # Scheduling the learning rate
-            #iter = len(trainloader)*epoch + i
-            adjust_learning_rate(optimizerSS, args.l_rate, epoch)
+            #adjust_learning_rate(optimizerSS, args.l_rate, epoch)
+            adjust_learning_rate_v2(optimizerSS, optimizerSS_init, epoch)
 
             ######################
             # Setting the gradients to zero at each iteration

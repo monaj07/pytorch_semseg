@@ -74,20 +74,14 @@ def validate(args):
             labels = Variable(labels)
 
         ######################
-        # Passing the data through the networks
+        # Passing the data through the networks and Computing the score maps
         padded_images = padder(images)
         feature_maps = netF(padded_images)
         score_maps = netS(feature_maps)
         outputs = F.upsample(score_maps, labels.size()[1:], mode='bilinear')
-
-        ######################
-        # Computing the score maps, and resizing them to match the ground-truth label maps
         pred = outputs.data.max(1)[1].cpu().numpy()
-        pred = np.squeeze(pred)
-        pred = cv2.resize(pred, labels.size()[1:][::-1], interpolation=cv2.INTER_NEAREST)
-        pred = np.expand_dims(pred, axis=0)
-        gt = labels.data.cpu().numpy()
 
+        gt = labels.data.cpu().numpy()
         for gt_, pred_ in zip(gt, pred):
             gts.append(gt_)
             preds.append(pred_)
