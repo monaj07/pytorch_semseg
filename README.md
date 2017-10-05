@@ -8,6 +8,20 @@ This repository aims at mirroring popular semantic segmentation architectures in
 
 <img src="https://meetshah1995.github.io/images/blog/ss/ptsemseg.png" width="80%">
 
+###
+* Training and validation for single model AlexFCN (around 45% mean_IoU)
+
+`python train.py --arch alexfcn`
+
+`python validate.py --model_path ./saved/alexfcn_pascal_0.pkl`
+
+* Training and validation for two-stage AlexFCN (net_features + net_segmenter)
+
+`python train_v2.py --arch alexfcnv2`
+
+`python validate_v2.py --netF_path ./saved/netF_alexfcnv2_pascal_0.pkl --netS_path saved/netS_alexfcnv2_pascal_0.pkl`
+
+
 ### Networks implemented
 
 * [Segnet](https://arxiv.org/abs/1511.00561) - With Unpooling using Maxpool indices
