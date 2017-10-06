@@ -40,6 +40,8 @@ def weights_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
         init.xavier_normal(m.weight)
+    elif classname.find('Linear') != -1:
+        init.xavier_normal(m.weight)
     elif classname.find('BatchNorm') != -1:
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
@@ -57,7 +59,9 @@ def train(args):
         image_transform = None
     else:
         # When pre_trained = 'self' or 'no', i.e. in the self-supervised case, or unsupervised case, the input images are normalized this way:
-        image_transform = transforms.Compose([transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+        image_transform = transforms.Compose([transforms.ToTensor(),
+                                              transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
     # Setup Dataloader
     data_loader = get_loader(args.dataset)
     data_path = get_data_path(args.dataset)
@@ -139,6 +143,7 @@ def train(args):
     optimizerSS_init = copy.deepcopy(optimizerSS)
     ############################################
 
+
     ############################################
     # TRAINING:
     for epoch in range(args.n_epoch):
@@ -189,14 +194,9 @@ def train(args):
         # vis.image(test_image[0].cpu().data.numpy(), opts=dict(title='Input' + str(epoch)))
         # vis.image(np.transpose(target, [2,0,1]), opts=dict(title='GT' + str(epoch)))
         # vis.image(np.transpose(predicted, [2,0,1]), opts=dict(title='Predicted' + str(epoch)))
-        if args.netF_path != '':
-            torch.save(netF, "./{}/netF_{}_{}_{}_from_{}.pkl".format(args.save_folder, args.arch, args.dataset, epoch, args.netF_path))
-        else:
-            torch.save(netF, "./{}/netF_{}_{}_{}.pkl".format(args.save_folder, args.arch, args.dataset, epoch))
-        if args.netS_path != '':
-            torch.save(netS, "./{}/netS_{}_{}_{}_from_{}.pkl".format(args.save_folder, args.arch, args.dataset, epoch, args.netS_path))
-        else:
-            torch.save(netS, "./{}/netS_{}_{}_{}.pkl".format(args.save_folder, args.arch, args.dataset, epoch))
+
+        torch.save(netF, "./{}/netF_{}_{}_{}.pkl".format(args.save_folder, args.arch, args.dataset, epoch))
+        torch.save(netS, "./{}/netS_{}_{}_{}.pkl".format(args.save_folder, args.arch, args.dataset, epoch))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Hyperparams')

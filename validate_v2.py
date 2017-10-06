@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import torchvision.models as models
 import cv2
 import matplotlib.pyplot as plt
+from torchvision import transforms
 
 from torch.autograd import Variable
 from torch.utils import data
@@ -30,11 +31,24 @@ class padder_layer(nn.Module):
 ############################################
 
 def validate(args):
+    ###################
+    supervised = args.supervised # If set in the command line, it is a boolean with a value of True.
+    ###################
+
     ############################################
+    if supervised:
+        # When pre_trained = 'gt', i.e. when using supervised image-net weights, images were normalized with image-net mean.
+        image_transform = None
+    else:
+        # When pre_trained = 'self' or 'no', i.e. in the self-supervised case, or unsupervised case, the input images are normalized this way:
+        image_transform = transforms.Compose([transforms.ToTensor(),
+                                              transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
     # Setup Dataloader
     data_loader = get_loader(args.dataset)
     data_path = get_data_path(args.dataset)
-    loader = data_loader(data_path, split=args.split, is_transform=True, img_size=(args.img_rows, args.img_cols))
+    loader = data_loader(data_path, split=args.split, is_transform=True,
+                         img_size=(args.img_rows, args.img_cols), image_transform=image_transform)
     n_classes = loader.n_classes
     valloader = data.DataLoader(loader, batch_size=args.batch_size, num_workers=4)
 
@@ -110,6 +124,8 @@ if __name__ == '__main__':
                         help='Height of the input image')
     parser.add_argument('--batch_size', nargs='?', type=int, default=1,
                         help='Batch Size')
+    parser.add_argument('--supervised', action='store_true',
+                        help='Uses Imagenet normalization that is used in supervised pre-training')
     parser.add_argument('--split', nargs='?', type=str, default='val',
                         help='Split of dataset to test on')
     parser.add_argument('--gpu', type=int, default=0,

@@ -8,6 +8,8 @@ import scipy.misc as m
 import scipy.io as io
 import matplotlib.pyplot as plt
 import cv2
+import torchvision.transforms as transforms
+from PIL import Image
 
 from tqdm import tqdm
 from torch.utils import data
@@ -60,29 +62,28 @@ class pascalVOCLoader(data.Dataset):
 
 
     def transform(self, img, lbl):
-        img = img[:, :, ::-1]
-        img = img.astype(np.float64)
         if self.image_transform is None:
+            img = img[:, :, ::-1]
+            img = img.astype(np.float64)
             img -= self.mean
             img = cv2.resize(img, self.img_size, interpolation=cv2.INTER_CUBIC)
-            #img = m.imresize(img, (self.img_size[0], self.img_size[1]))
             img = img.astype(float) / 255.0
+            img = img.transpose(2, 0, 1)
+            img = torch.from_numpy(img).float()
         else:
-            img = cv2.resize(img, self.img_size, interpolation=cv2.INTER_CUBIC)
+            img = cv2.resize(img, self.img_size, interpolation=cv2.INTER_CUBIC).astype(np.int32)
             img = self.image_transform(img)
-
-        img = img.transpose(2, 0, 1)
+            # img = img.transpose(2, 0, 1)  ## No need to do this transpose here anymore,
+            # as it is done internally within ToTensor() function, inside image_transform.
+            # img = torch.from_numpy(img).float() # It has already been converted to tensor using transforms.ToTensor() in image_transform.
 
         lbl[lbl==255] = -1
-
         if self.split=='train':
             lbl = lbl.astype(float)
             lbl = cv2.resize(lbl, self.img_size, interpolation=cv2.INTER_NEAREST)
-            #lbl = m.imresize(lbl, (self.img_size[0], self.img_size[1]), 'nearest', mode='F')
             lbl = lbl.astype(int)
-
-        img = torch.from_numpy(img).float()
         lbl = torch.from_numpy(lbl).long()
+
         return img, lbl
 
 
