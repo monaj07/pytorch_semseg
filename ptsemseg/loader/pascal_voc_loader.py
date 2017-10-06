@@ -18,7 +18,7 @@ def get_data_path(name):
     return data[name]['data_path']
 
 class pascalVOCLoader(data.Dataset):
-    def __init__(self, root, split="train", is_transform=False, img_size=224):
+    def __init__(self, root, split="train", is_transform=False, img_size=224, image_transform=None):
         self.root = root
         self.split = split
         self.is_transform = is_transform
@@ -26,6 +26,7 @@ class pascalVOCLoader(data.Dataset):
         self.img_size = img_size if isinstance(img_size, tuple) else (img_size, img_size)
         self.mean = np.array([104.00699, 116.66877, 122.67892])
         self.files = collections.defaultdict(list)
+        self.image_transform = image_transform
 
 	file_list = []
 
@@ -61,11 +62,15 @@ class pascalVOCLoader(data.Dataset):
     def transform(self, img, lbl):
         img = img[:, :, ::-1]
         img = img.astype(np.float64)
-        img -= self.mean
-        img = cv2.resize(img, self.img_size, interpolation=cv2.INTER_CUBIC)
-        #img = m.imresize(img, (self.img_size[0], self.img_size[1]))
-        img = img.astype(float) / 255.0
-        # NHWC -> NCWH
+        if self.image_transform is None:
+            img -= self.mean
+            img = cv2.resize(img, self.img_size, interpolation=cv2.INTER_CUBIC)
+            #img = m.imresize(img, (self.img_size[0], self.img_size[1]))
+            img = img.astype(float) / 255.0
+        else:
+            img = cv2.resize(img, self.img_size, interpolation=cv2.INTER_CUBIC)
+            img = self.image_transform(img)
+
         img = img.transpose(2, 0, 1)
 
         lbl[lbl==255] = -1

@@ -51,7 +51,7 @@ def train(args):
     data_path = get_data_path(args.dataset)
     dataset = dset.ImageFolder(root=data_path,
                                transform=transforms.Compose([
-                                   transforms.Scale(args.img_rows),
+                                   transforms.Scale(2*args.img_rows),
                                    transforms.RandomCrop(args.img_rows),
                                    transforms.RandomHorizontalFlip(),
                                    transforms.ToTensor(),
@@ -122,7 +122,7 @@ def train(args):
             ######################
             # Scheduling the learning rate
             #adjust_learning_rate(optimizerSS, args.l_rate, epoch)
-            adjust_learning_rate_v2(optimizerSS, optimizerSS_init, epoch, step=10)
+            adjust_learning_rate_v2(optimizerSS, optimizerSS_init, epoch, step=20)
 
             ######################
             # Setting the gradients to zero at each iteration
@@ -154,9 +154,9 @@ def train(args):
         # vis.image(np.transpose(predicted, [2,0,1]), opts=dict(title='Predicted' + str(epoch)))
         if (epoch+1) % 5 == 0:
             if args.model_path != '':
-                torch.save(model, "./{}/model_{}_{}_{}_from_{}.pkl" .format(args.save_folder, args.arch, args.dataset, epoch, args.model_path))
+                torch.save(model, "./{}/double_scale_model_{}_{}_{}_from_{}.pkl" .format(args.save_folder, args.arch, args.dataset, epoch, args.model_path))
             else:
-                torch.save(model, "./{}/model_{}_{}_{}.pkl".format(args.save_folder, args.arch, args.dataset, epoch))
+                torch.save(model, "./{}/double_scale_model_{}_{}_{}.pkl".format(args.save_folder, args.arch, args.dataset, epoch))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Hyperparams')

@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import torchvision.models as models
 import matplotlib.pyplot as plt
 import torch.nn.init as init
+from torchvision import transforms
 
 from torch.autograd import Variable
 from torch.utils import data
@@ -46,27 +47,67 @@ def weights_init(m):
 
 
 def train(args):
+    ###################
+    pre_trained = args.pre_trained # default='gt'
+    ###################
+
     ############################################
+    if pre_trained == 'gt':
+        # When pre_trained = 'gt', i.e. when using supervised image-net weights, images were normalized with image-net mean.
+        image_transform = None
+    else:
+        # When pre_trained = 'self' or 'no', i.e. in the self-supervised case, or unsupervised case, the input images are normalized this way:
+        image_transform = transforms.Compose([transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
     # Setup Dataloader
     data_loader = get_loader(args.dataset)
     data_path = get_data_path(args.dataset)
-    loader = data_loader(data_path, split=args.split, is_transform=True, img_size=(args.img_rows, args.img_cols))
+    loader = data_loader(data_path, split=args.split, is_transform=True,
+                         img_size=(args.img_rows, args.img_cols), image_transform=image_transform)
     n_classes = loader.n_classes
     trainloader = data.DataLoader(loader, batch_size=args.batch_size, num_workers=4, shuffle=True)
     ############################################
 
     ############################################
     # Setup Model
-    pre_trained = True
-    netF, netS = get_model(args.arch, n_classes, pre_trained=pre_trained)
-    padder = padder_layer(pad_size=100)
-    ############################################
+    if args.netF_path == '' or args.netS_path == '':
+        if pre_trained == 'gt':
+            netF, netS = get_model(args.arch, n_classes, pre_trained=True)
+            print('*' * 60)
+            print('*' * 60)
+            print('*' * 60)
+            print('Training using a GT-supervised pre-trained model ...')
+            print('*' * 60)
+            print('*' * 60)
+            print('*' * 60 + '\n')
+        elif pre_trained == 'self':
+            netF, netS = get_model(args.arch, n_classes, pre_trained=False)
+            assert (args.model_path != '')
+            # Loading a self-supervised trained model (ss_model)
+            print('x' * 60)
+            print('x' * 60)
+            print('x' * 60)
+            print('Training a using a self-supervised pre-trained model ...')
+            ss_model = torch.load(args.model_path)
+            netF.init_alex_params(ss_model)
+            netS.init_alex_params(ss_model)
+            print('Restored the self-supervised pre_trained model {}'.format(args.model_path))
+            print('x' * 60)
+            print('x' * 60)
+            print('x' * 60 + '\n')
+        else: # pre_trained == 'no':
+            netF, netS = get_model(args.arch, n_classes, pre_trained=False)
+            # Random weight initialization
+            netF.apply(weights_init)
+            netS.apply(weights_init)
+            print('o' * 60)
+            print('o' * 60)
+            print('o' * 60)
+            print('Training without any pre-trained model ...')
+            print('o' * 60)
+            print('o' * 60)
+            print('o' * 60 + '\n')
 
-    ############################################
-    # Random weight initialization
-    if not pre_trained:
-        netF.apply(weights_init)
-        netS.apply(weights_init)
+    padder = padder_layer(pad_size=100)
     ############################################
 
     ############################################
@@ -74,13 +115,12 @@ def train(args):
     if args.netF_path != '':
         print('\n' + '-' * 40)
         netF = torch.load(args.netF_path)
-        print('Restored the trained network {}'.format(args.netF_path))
+        print('Resuming the training netF from model in {}'.format(args.netF_path))
     if args.netS_path != '':
         netS = torch.load(args.netS_path)
-        print('Restored the trained network {}'.format(args.netS_path))
+        print('Resuming the training netS from model in {}'.format(args.netS_path))
         print('-' * 40)
     ############################################
-
 
     ############################################
     # Porting the networks to CUDA
@@ -174,6 +214,10 @@ if __name__ == '__main__':
                         help='Batch Size')
     parser.add_argument('--l_rate', nargs='?', type=float, default=1e-5,
                         help='Learning Rate')
+    parser.add_argument('--pre_trained', nargs='?', type=str, default='gt',
+                        help='network pre_trained? [\'gt, self, no\']')
+    parser.add_argument('--model_path', nargs='?', type=str, default='',
+                        help='path to the self-supervised trained model')
     parser.add_argument('--netF_path', nargs='?', type=str, default='',
                         help='path to the netF model')
     parser.add_argument('--netS_path', nargs='?', type=str, default='',
