@@ -19,6 +19,9 @@ build/
 develop-eggs/
 dist/
 downloads/
+saved_GAN
+saved
+saved_pretrained
 #models/
 eggs/
 .eggs/
