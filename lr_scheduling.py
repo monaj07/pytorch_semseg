@@ -14,9 +14,9 @@ def poly_lr_scheduler(optimizer, init_lr, iter, lr_decay_iter=1, max_iter=30000,
         param_group['lr'] = init_lr*(1 - iter/max_iter)**power
 
 
-def adjust_learning_rate(optimizer, init_lr, epoch):
+def adjust_learning_rate(optimizer, init_lr, epoch, step=20):
     """Sets the learning rate to the initial LR decayed by 2 every 20 epochs"""
-    lr = init_lr * (0.5 ** (epoch // 20))
+    lr = init_lr * (0.5 ** (epoch // step))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 

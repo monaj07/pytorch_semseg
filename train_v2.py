@@ -160,8 +160,10 @@ def train(args):
 
             ######################
             # Scheduling the learning rate
-            #adjust_learning_rate(optimizerSS, args.l_rate, epoch)
-            adjust_learning_rate_v2(optimizerSS, optimizerSS_init, epoch, step=20)
+            if args.pre_trained=='no':
+                adjust_learning_rate(optimizerSS, args.l_rate, epoch, step=20)
+            else:
+                adjust_learning_rate_v2(optimizerSS, optimizerSS_init, epoch, step=20)
 
             ######################
             # Setting the gradients to zero at each iteration
@@ -220,14 +222,14 @@ if __name__ == '__main__':
     parser.add_argument('--model_path', nargs='?', type=str, default='',
                         help='path to the self-supervised trained model')
     parser.add_argument('--netF_path', nargs='?', type=str, default='',
-                        help='path to the netF model')
+                        help='path to the netF model (For resuming the training)')
     parser.add_argument('--netS_path', nargs='?', type=str, default='',
-                        help='path to the netS model')
+                        help='path to the netS model (For resuming the training)')
     parser.add_argument('--gpu', type=int, default=0,
                         help='which GPU to use')
     parser.add_argument('--split', nargs='?', type=str, default='train',
-                        help='Split of dataset to test on')
+                        help='Split of dataset')
     parser.add_argument('--save_folder', nargs='?', type=str, default='saved',
-                        help='Where to save and retrieve the models')
+                        help='Where to save the models')
     args = parser.parse_args()
     train(args)
