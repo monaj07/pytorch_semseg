@@ -54,10 +54,10 @@ def validate(args):
 
     ############################################
     # Load the trained Model
-    assert(args.netF_path != '' and args.netS_path != '')
+    assert(args.netF != '' and args.netS != '')
     print('\n' + '-' * 60)
-    netF = torch.load(args.netF_path)
-    netS = torch.load(args.netS_path)
+    netF = torch.load(args.netF)
+    netS = torch.load(args.netS)
     print('Loading the trained networks and for evaluation.')
     print('-' * 60)
 
@@ -112,9 +112,9 @@ def validate(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Hyperparams')
-    parser.add_argument('--netF_path', nargs='?', type=str, required=True,
+    parser.add_argument('--netF', nargs='?', type=str, required=True,
                         help='path to the netF model')
-    parser.add_argument('--netS_path', nargs='?', type=str, required=True,
+    parser.add_argument('--netS', nargs='?', type=str, required=True,
                         help='path to the netS model')
     parser.add_argument('--dataset', nargs='?', type=str, default='pascal',
                         help='Dataset to use [\'pascal, camvid, ade20k etc\']')
