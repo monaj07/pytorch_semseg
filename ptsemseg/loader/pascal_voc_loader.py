@@ -32,13 +32,13 @@ class pascalVOCLoader(data.Dataset):
 
 	file_list = []
 
-	with open(root + '/dataset/' + split + '.txt', 'r') as f:
+	with open(root + '/ImageSets/Segmentation/' + split + '.txt', 'r') as f:
 	    lines = f.readlines()
 	filenames = [l.strip() for l in lines]
 	N = len(filenames)
 	print('Loading image and label filenames...\n')
 	for i in range(N):
-	    file_list.append(filenames[i].split()[0][12:-4])	
+	    file_list.append(filenames[i])
 	self.files = file_list
 
     def __len__(self):
@@ -47,7 +47,7 @@ class pascalVOCLoader(data.Dataset):
     def __getitem__(self, index):
         img_name = self.files[index]
         img_path = self.root + '/JPEGImages/' + img_name + '.jpg'
-        lbl_path = self.root + '/SegmentationClassAug/' + img_name + '.png'
+        lbl_path = self.root + '/SegmentationClass/pre_encoded/' + img_name + '.png'
 
         img = m.imread(img_path)
         img = np.array(img, dtype=np.uint8)
@@ -84,107 +84,6 @@ class pascalVOCLoader(data.Dataset):
             lbl = lbl.astype(int)
         lbl = torch.from_numpy(lbl).long()
 
-        return img, lbl
-
-
-    def get_pascal_labels(self):
-        return np.asarray([[0,0,0], [128,0,0], [0,128,0], [128,128,0], [0,0,128], [128,0,128],
-                              [0,128,128], [128,128,128], [64,0,0], [192,0,0], [64,128,0], [192,128,0],
-                              [64,0,128], [192,0,128], [64,128,128], [192,128,128], [0, 64,0], [128, 64, 0],
-                              [0,192,0], [128,192,0], [0,64,128]])
-
-
-    def encode_segmap(self, mask):
-        mask = mask.astype(int)
-        label_mask = np.zeros((mask.shape[0], mask.shape[1]), dtype=np.int16)
-        for i, label in enumerate(self.get_pascal_labels()):
-            label_mask[np.where(np.all(mask == label, axis=-1))[:2]] = i
-        label_mask = label_mask.astype(int)
-        return label_mask
-
-
-    def decode_segmap(self, temp, plot=False):
-        label_colours = self.get_pascal_labels()
-        r = temp.copy()
-        g = temp.copy()
-        b = temp.copy()
-        for l in range(0, self.n_classes):
-            r[temp == l] = label_colours[l, 0]
-            g[temp == l] = label_colours[l, 1]
-            b[temp == l] = label_colours[l, 2]
-
-        rgb = np.zeros((temp.shape[0], temp.shape[1], 3))
-        rgb[:, :, 0] = r
-        rgb[:, :, 1] = g
-        rgb[:, :, 2] = b
-        if plot:
-            plt.imshow(rgb)
-            plt.show()
-        else:
-            return rgb
-
-
-class pascalVOC11Loader(data.Dataset):
-    def __init__(self, root, split="train", is_transform=False, img_size=224):
-        self.root = root
-        self.split = split
-        self.is_transform = is_transform
-        self.n_classes = 21
-        self.img_size = img_size if isinstance(img_size, tuple) else (img_size, img_size)
-        self.mean = np.array([104.00699, 116.66877, 122.67892])
-        self.files = collections.defaultdict(list)
-
-	file_list = []
-
-	with open(root + '/dataset/' + split + '.txt', 'r') as f:
-	    lines = f.readlines()
-	filenames = [l.rstrip() for l in lines]
-	N = len(filenames)
-	print('Loading image and label filenames...\n')
-	for i in range(N):
-	    file_list.append(filenames[i])
-	self.files = file_list
-
-    def __len__(self):
-        return len(self.files)
-
-    def __getitem__(self, index):
-        img_name = self.files[index]
-        img_path = self.root + '/JPEGImages/' + img_name + '.jpg'
-        lbl_path = self.root + '/SegmentationClass/pre_encoded/' + img_name + '.png'
-
-        img = m.imread(img_path)
-        img = np.array(img, dtype=np.uint8)
-
-        lbl = m.imread(lbl_path)
-        lbl = np.array(lbl, dtype=np.int32)
-
-        if self.is_transform:
-            img, lbl = self.transform(img, lbl)
-
-        return img, lbl
-
-
-    def transform(self, img, lbl):
-        img = img[:, :, ::-1]
-        img = img.astype(np.float64)
-        img -= self.mean
-        img = cv2.resize(img, self.img_size, interpolation=cv2.INTER_CUBIC)
-        #img = m.imresize(img, (self.img_size[0], self.img_size[1]))
-        img = img.astype(float) / 255.0
-        # NHWC -> NCWH
-        img = img.transpose(2, 0, 1)
-
-        lbl[lbl==255] = -1
-
-        if 'train' in self.split:
-            lbl = lbl.astype(float)
-            lbl = cv2.resize(lbl, self.img_size, interpolation=cv2.INTER_NEAREST)
-            #lbl = m.imresize(lbl, (self.img_size[0], self.img_size[1]), 'nearest', mode='F')
-            lbl = lbl.astype(int)
-
-        img = torch.from_numpy(img).float()
-        lbl = torch.from_numpy(lbl).long()
         return img, lbl
 
 

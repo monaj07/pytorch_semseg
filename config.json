@@ -8,11 +8,6 @@
     "data_path": "/home/monaj/bin/VOCdevkit/VOC2012/"
   },
 
-  "pascal11":
-  {
-    "data_path": "/home/monaj/bin/VOCdevkit/VOC2012/"
-  },
-
   "sbd":
   {
     "data_path": "/home/monaj/bin/VOCdevkit/VOC2012/extra_berkeley_dataset/"
